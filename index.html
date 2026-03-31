@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VA Form 21-686c Interactive Flowchart</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Add html2canvas for image saving -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         .fade-in {
             animation: fadeIn 0.3s ease-in-out;
@@ -22,6 +24,13 @@
             border-color: #2563eb;
             background-color: #eff6ff;
             ring: 2px solid #2563eb;
+        }
+        /* Print Styles */
+        @media print {
+            body { background: white !important; }
+            .no-print, header, #progress-bar, #nav-area { display: none !important; }
+            #app-container { box-shadow: none !important; border: none !important; }
+            #printable-results { padding: 0 !important; }
         }
     </style>
 </head>
@@ -271,8 +280,10 @@
                 });
             });
 
-            // Build Output HTML
-            let requirementsHTML = `
+            // Build Output HTML - Wrapping the printable area
+            let requirementsHTML = `<div id="printable-results" class="bg-white p-2 sm:p-4 -mx-2 sm:-mx-4 rounded-xl">`;
+            
+            requirementsHTML += `
                 <div class="mb-8">
                     <h2 class="text-3xl font-bold text-slate-800 mb-2">Your Comprehensive Checklist</h2>
                     <p class="text-slate-600">Based on your selections, here is exactly what you need to provide on and with VA Form 21-686c.</p>
@@ -353,10 +364,21 @@
                 `;
             }
 
+            requirementsHTML += `</div>`; // Close printable-results
+
+            // Action Buttons (Excluded from print)
             requirementsHTML += `
-                <div class="mt-8 text-center pt-6 border-t border-slate-200">
-                    <button onclick="resetApp()" class="px-6 py-2 bg-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-300 transition-colors mr-3">Start Over</button>
-                    <a href="https://www.va.gov/vaforms/" target="_blank" class="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm">Find Forms on VA.gov &rarr;</a>
+                <div class="mt-8 pt-6 border-t border-slate-200 flex flex-wrap justify-center gap-3 no-print">
+                    <button onclick="window.print()" class="px-5 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors border border-slate-300 flex items-center shadow-sm">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                        Print
+                    </button>
+                    <button onclick="saveAsImage()" class="px-5 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors border border-slate-300 flex items-center shadow-sm">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        Save Image
+                    </button>
+                    <button onclick="resetApp()" class="px-5 py-2 bg-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-300 transition-colors shadow-sm">Start Over</button>
+                    <a href="https://www.va.gov/vaforms/" target="_blank" class="px-5 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm flex items-center">Find Forms on VA.gov &rarr;</a>
                 </div>
             `;
 
@@ -380,7 +402,7 @@
             }
         }
 
-        // --- Event Listeners ---
+        // --- Event Listeners and Global Functions ---
         btnNext.addEventListener('click', () => {
             if (flowSequence[currentStepIndex] === 'main_goals') {
                 updateFlowSequence();
@@ -405,6 +427,20 @@
             flowSequence = ['main_goals'];
             currentStepIndex = 0;
             renderStep();
+        };
+
+        window.saveAsImage = function() {
+            const element = document.getElementById('printable-results');
+            // Ensure white background and good scale for the generated image
+            html2canvas(element, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'VA_Form_21_686c_Checklist.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }).catch(err => {
+                console.error('Error generating image:', err);
+                alert('Could not save image. Please try the print option instead.');
+            });
         };
 
         // Initialize
