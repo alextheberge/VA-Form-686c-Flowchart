@@ -23,7 +23,7 @@
         input[type="radio"]:checked + div {
             border-color: #2563eb;
             background-color: #eff6ff;
-            ring: 2px solid #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
         }
         /* Print Styles */
         @media print {
@@ -41,6 +41,7 @@
         <header class="mb-8 text-center">
             <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">VA Form 21-686c Assistant</h1>
             <p class="text-slate-600">Interactive Guide to Adding or Removing Dependents</p>
+            <p id="autosave-status" class="text-sm text-slate-500 mt-1">Progress is auto-saved locally in your browser.</p>
         </header>
 
         <!-- Main Card -->
@@ -128,6 +129,8 @@
         };
 
         // --- State Management ---
+        const STORAGE_KEY = 'va-686c-wizard-progress';
+
         let state = {
             main_goals: [],
             add_spouse_details: [],
@@ -138,6 +141,37 @@
         
         let flowSequence = ['main_goals'];
         let currentStepIndex = 0;
+
+        // --- Persistence ---
+        function saveProgress() {
+            const payload = { state, flowSequence, currentStepIndex };
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+                document.getElementById('autosave-status').innerText = 'Progress saved locally. You can close and return any time.';
+            } catch (e) {
+                document.getElementById('autosave-status').innerText = 'Progress auto-save failed (private mode or quota).';
+            }
+        }
+
+        function loadProgress() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return;
+                const payload = JSON.parse(raw);
+                if (!payload || typeof payload !== 'object') return;
+                state = payload.state || state;
+                flowSequence = payload.flowSequence || flowSequence;
+                currentStepIndex = typeof payload.currentStepIndex === 'number' ? payload.currentStepIndex : currentStepIndex;
+                document.getElementById('autosave-status').innerText = 'Resumed saved progress from previous session.';
+            } catch (e) {
+                console.warn('Failed to load saved progress', e);
+            }
+        }
+
+        function clearProgress() {
+            localStorage.removeItem(STORAGE_KEY);
+            document.getElementById('autosave-status').innerText = 'Progress cleared. Starting fresh.';
+        }
 
         // --- DOM Elements ---
         const contentArea = document.getElementById('content-area');
@@ -179,7 +213,15 @@
                 navArea.classList.remove('hidden');
                 btnBack.classList.toggle('hidden', currentStepIndex === 0);
                 btnNext.innerText = currentStepIndex === flowSequence.length - 2 ? "Get Requirements" : "Next Step \u2192";
-                
+
+                const stepInfo = document.createElement('div');
+                stepInfo.className = 'mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2';
+                stepInfo.innerHTML = `
+                    <div class="text-sm font-semibold text-slate-500">Step ${currentStepIndex + 1} of ${flowSequence.length}</div>
+                    <div class="text-xs text-slate-400">Progress: ${Math.round(((currentStepIndex + 1) / flowSequence.length) * 100)}%</div>
+                `;
+                contentArea.appendChild(stepInfo);
+
                 renderOptions(config[pageId], pageId, config[pageId].type);
                 validateSelection(pageId);
             }
@@ -225,6 +267,7 @@
                         state[stateKey] = e.target.value;
                     }
                     validateSelection(stateKey);
+                    saveProgress();
                 });
 
                 const card = document.createElement('div');
@@ -385,6 +428,20 @@
             contentArea.innerHTML = requirementsHTML;
         }
 
+        function copyChecklist() {
+            const text = contentArea.innerText || '';
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Checklist copied to clipboard.');
+            }).catch(() => {
+                alert('Copy failed. Please copy manually.');
+            });
+        }
+
+        function saveAsImage() {
+            // Fallback notice; advanced image export can be added with html2canvas
+            alert('Export as image is not available in this environment. We recommend using Print to PDF instead.');
+        }
+
         function validateSelection(stateKey) {
             let isValid = false;
             if (Array.isArray(state[stateKey])) {
@@ -409,6 +466,7 @@
             }
             if (currentStepIndex < flowSequence.length - 1) {
                 currentStepIndex++;
+                saveProgress();
                 renderStep();
             }
         });
@@ -418,11 +476,13 @@
                 currentStepIndex--;
                 // Re-calculate flow just in case, though back shouldn't change forward branches until Next is hit
                 if (currentStepIndex === 0) updateFlowSequence();
+                saveProgress();
                 renderStep();
             }
         });
 
         window.resetApp = function() {
+            clearProgress();
             state = { main_goals: [], add_spouse_details: [], add_child_details: [], rem_spouse_details: null, rem_child_details: [] };
             flowSequence = ['main_goals'];
             currentStepIndex = 0;
@@ -444,6 +504,7 @@
         };
 
         // Initialize
+        loadProgress();
         renderStep();
 
     </script>

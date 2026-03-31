@@ -29,6 +29,8 @@ It is structured as a multi-step checklist:
 - Progress bar and step navigation (Next/Back)
 - Branching flow based on selections
 - Self-validating required input for each screen
+- Auto-save progress in browser (reload or return later and resume)
+- Copy-to-clipboard and print checklist capabilities
 - Final results include:
   - Mandatory 21-686c sections
   - Specific sub-sections to complete
