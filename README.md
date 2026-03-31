@@ -40,10 +40,12 @@ It is structured as a multi-step checklist:
 ## 🛠️ How to use
 
 1. Open `index.html` in a browser.
-2. Start at the first question: `What are you trying to do?`.
-3. Select your objectives (you can choose multiple if needed).
-4. Proceed through the flow (the app auto-builds your personalized requirement list).
-5. Review the final checklist and evidence recommendations.
+2. Or use the hosted demo:
+   - https://alextheberge.github.io/VA-Form-686c-Flowchart/
+3. Start at the first question: `What are you trying to do?`.
+4. Select your objectives (you can choose multiple if needed).
+5. Proceed through the flow (the app auto-builds your personalized requirement list).
+6. Review the final checklist and evidence recommendations.
 
 ---
 
