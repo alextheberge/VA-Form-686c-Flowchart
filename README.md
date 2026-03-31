@@ -72,3 +72,5 @@ NO WARRANTY. THE SOFTWARE IS PROVIDED "AS IS," WITHOUT WARRANTY OF ANY KIND, EXP
 ## 📣 Disclaimer
 
 This repository and its contents are an **unofficial veteran-made questionnaire** to assist fellow veterans and survivors with the VA dependent process. Use at your own risk and verify with official VA sources when in doubt.
+
+© 2025 Alex Theberge; Creative Services
