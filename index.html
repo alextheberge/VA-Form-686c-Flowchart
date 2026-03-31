@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VA Form 21-686c Interactive Flowchart</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom checkbox styles */
+        input[type="checkbox"]:checked + div {
+            border-color: #2563eb;
+            background-color: #eff6ff;
+        }
+        input[type="radio"]:checked + div {
+            border-color: #2563eb;
+            background-color: #eff6ff;
+            ring: 2px solid #2563eb;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 font-sans p-4 md:p-8">
+
+    <div class="max-w-3xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">VA Form 21-686c Assistant</h1>
+            <p class="text-slate-600">Interactive Guide to Adding or Removing Dependents</p>
+        </header>
+
+        <!-- Main Card -->
+        <main class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden min-h-[400px] flex flex-col relative" id="app-container">
+            <!-- Progress Bar -->
+            <div class="h-2 bg-slate-100 w-full absolute top-0 left-0">
+                <div id="progress-bar" class="h-full bg-blue-600 transition-all duration-300 w-1/4"></div>
+            </div>
+
+            <!-- Dynamic Content Area -->
+            <div id="content-area" class="p-6 md:p-10 flex-grow fade-in">
+                <!-- Content injected by JS -->
+            </div>
+
+            <!-- Footer / Navigation -->
+            <div id="nav-area" class="bg-slate-50 p-4 md:px-10 border-t border-slate-200 flex justify-between items-center hidden">
+                <button id="btn-back" class="px-5 py-2 rounded-lg text-slate-600 font-medium hover:bg-slate-200 transition-colors hidden">
+                    &larr; Back
+                </button>
+                <button id="btn-next" class="px-5 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors ml-auto shadow-sm">
+                    Next Step &rarr;
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- Data & Logic Config ---
+        const config = {
+            main_goals: {
+                title: "What are you trying to do? (Select ALL that apply)",
+                type: "checkbox",
+                options: [
+                    { id: "add_spouse", label: "Add a Spouse", icon: `<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>` },
+                    { id: "add_child", label: "Add Child(ren)", icon: `<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>` },
+                    { id: "add_parent", label: "Add a Dependent Parent", icon: `<svg class="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>` },
+                    { id: "rem_spouse", label: "Remove a Spouse", icon: `<svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>` },
+                    { id: "rem_child", label: "Remove Child(ren)", icon: `<svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>` }
+                ]
+            },
+            add_spouse_details: {
+                title: "Adding a Spouse: Select circumstances that apply",
+                type: "checkbox",
+                options: [
+                    { id: "sp_std", label: "Standard Civil or Religious Ceremony", req: "Provide Marriage Certificate (ONLY IF foreign marriage, discrepancy in records, or explicitly requested by VA)." },
+                    { id: "sp_commonlaw", label: "Common-Law Marriage", req: "Submit TWO VA Forms 21-4170, TWO VA Forms 21P-4171, and birth certificates of any children of the marriage." },
+                    { id: "sp_tribal", label: "Tribal Ceremony", req: "Submit Affidavits from the parties, two witnesses, and the officiant." },
+                    { id: "sp_proxy", label: "Proxy Marriage", req: "Submit all official proxy marriage documents/certificates." },
+                    { id: "sp_aa", label: "Spouse Requires Aid & Attendance", req: "Submit VA Form 21-2680 or VA Form 21-0779 (if in a nursing home)." },
+                    { id: "sp_pension", label: "I am a Veteran on Pension (Claiming Spouse Only)", req: "Submit VA Form 21P-0516-1." }
+                ]
+            },
+            add_child_details: {
+                title: "Adding Child(ren): Select ALL that apply to the child(ren)",
+                type: "checkbox",
+                options: [
+                    { id: "ch_minor", label: "Biological / Stepchild (Under 18)", req: "Provide Birth Certificate (ONLY IF foreign birth, discrepancy in records, or explicitly requested by VA)." },
+                    { id: "ch_school", label: "18-23 Years Old and in School", req: "Submit VA Form 21-674 (Request for Approval of School Attendance)." },
+                    { id: "ch_adopted", label: "Adopted Child", req: "Provide Final Decree of Adoption or Placement Agreement." },
+                    { id: "ch_incapable", label: "Permanently Incapable of Self-Support (before age 18)", req: "Submit Medical Evidence and an Attending Physician Statement." },
+                    { id: "ch_morethan4", label: "I am claiming more than 4 children overall", req: null, section: "Section XI: Additional Child(ren) Addendum (Page 15)" },
+                    { id: "ch_pension_vet", label: "I am a Veteran on Pension (With Children)", req: "Submit VA Form 21P-0517-1." },
+                    { id: "ch_pension_surv", label: "I am a Surviving Spouse on Pension (With Children)", req: "Submit VA Form 21P-0519s-1." }
+                ]
+            },
+            rem_spouse_details: {
+                title: "Removing a Spouse: Reason for removal?",
+                type: "radio",
+                options: [
+                    { id: "rem_sp_divorce", label: "Divorce / Annulment", section: "Section IV: Veteran Reporting Divorce from Former Spouse" },
+                    { id: "rem_sp_death", label: "Death", section: "Section VI: Veteran/Claimant Reporting Death of a Dependent" }
+                ]
+            },
+            rem_child_details: {
+                title: "Removing Child(ren): Reason(s) for removal? (Select ALL that apply)",
+                type: "checkbox",
+                options: [
+                    { id: "rem_ch_death", label: "Death", section: "Section VI: Veteran/Claimant Reporting Death of a Dependent" },
+                    { id: "rem_ch_marriage", label: "Marriage", section: "Section VII: Veteran/Claimant Reporting Marriage of Child" },
+                    { id: "rem_ch_school", label: "Stopped Attending School (Over 18)", section: "Section VIII: Reporting a Schoolchild Over 18 Has Stopped Attending School" },
+                    { id: "rem_ch_stepchild", label: "Stepchild left household", section: "Section V: Veteran/Claimant Reporting on Stepchild(ren)" },
+                    { id: "rem_ch_adopted", label: "Given up for Adoption", section: "Section IX: Remarks (Provide the date and details)" }
+                ]
+            }
+        };
+
+        // --- State Management ---
+        let state = {
+            main_goals: [],
+            add_spouse_details: [],
+            add_child_details: [],
+            rem_spouse_details: null,
+            rem_child_details: []
+        };
+        
+        let flowSequence = ['main_goals'];
+        let currentStepIndex = 0;
+
+        // --- DOM Elements ---
+        const contentArea = document.getElementById('content-area');
+        const navArea = document.getElementById('nav-area');
+        const btnNext = document.getElementById('btn-next');
+        const btnBack = document.getElementById('btn-back');
+        const progressBar = document.getElementById('progress-bar');
+
+        // --- Core Functions ---
+
+        function updateFlowSequence() {
+            flowSequence = ['main_goals'];
+            if (state.main_goals.includes('add_spouse')) flowSequence.push('add_spouse_details');
+            if (state.main_goals.includes('add_child')) flowSequence.push('add_child_details');
+            if (state.main_goals.includes('rem_spouse')) flowSequence.push('rem_spouse_details');
+            if (state.main_goals.includes('rem_child')) flowSequence.push('rem_child_details');
+            flowSequence.push('results');
+        }
+
+        function updateProgress() {
+            const percent = flowSequence.length > 1 
+                ? (currentStepIndex / (flowSequence.length - 1)) * 100 
+                : 0;
+            progressBar.style.width = `${percent}%`;
+        }
+
+        function renderStep() {
+            contentArea.innerHTML = '';
+            contentArea.classList.remove('fade-in');
+            void contentArea.offsetWidth; // trigger reflow
+            contentArea.classList.add('fade-in');
+
+            const pageId = flowSequence[currentStepIndex];
+
+            if (pageId === 'results') {
+                renderResults();
+                navArea.classList.add('hidden');
+            } else {
+                navArea.classList.remove('hidden');
+                btnBack.classList.toggle('hidden', currentStepIndex === 0);
+                btnNext.innerText = currentStepIndex === flowSequence.length - 2 ? "Get Requirements" : "Next Step \u2192";
+                
+                renderOptions(config[pageId], pageId, config[pageId].type);
+                validateSelection(pageId);
+            }
+            updateProgress();
+        }
+
+        function renderOptions(questionConfig, stateKey, inputType) {
+            const container = document.createElement('div');
+            
+            const title = document.createElement('h2');
+            title.className = 'text-2xl font-bold text-slate-800 mb-6';
+            title.innerText = questionConfig.title;
+            container.appendChild(title);
+
+            const grid = document.createElement('div');
+            grid.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+
+            questionConfig.options.forEach(opt => {
+                const label = document.createElement('label');
+                label.className = 'cursor-pointer relative';
+
+                const input = document.createElement('input');
+                input.type = inputType;
+                input.name = stateKey;
+                input.value = opt.id;
+                input.className = 'peer sr-only';
+                
+                // Pre-select based on state
+                if (inputType === 'checkbox' && Array.isArray(state[stateKey]) && state[stateKey].includes(opt.id)) {
+                    input.checked = true;
+                } else if (inputType === 'radio' && state[stateKey] === opt.id) {
+                    input.checked = true;
+                }
+
+                input.addEventListener('change', (e) => {
+                    if (inputType === 'checkbox') {
+                        if (e.target.checked) {
+                            if (!state[stateKey].includes(e.target.value)) state[stateKey].push(e.target.value);
+                        } else {
+                            state[stateKey] = state[stateKey].filter(val => val !== e.target.value);
+                        }
+                    } else if (inputType === 'radio') {
+                        state[stateKey] = e.target.value;
+                    }
+                    validateSelection(stateKey);
+                });
+
+                const card = document.createElement('div');
+                card.className = 'flex items-center p-5 border-2 border-slate-200 rounded-xl hover:border-blue-300 transition-all bg-white h-full';
+                
+                if (opt.icon) {
+                    const iconBox = document.createElement('div');
+                    iconBox.className = 'mr-4 shrink-0';
+                    iconBox.innerHTML = opt.icon;
+                    card.appendChild(iconBox);
+                }
+
+                const textSpan = document.createElement('span');
+                textSpan.className = 'text-lg font-medium text-slate-700 leading-snug';
+                textSpan.innerText = opt.label;
+                
+                card.appendChild(textSpan);
+                label.appendChild(input);
+                label.appendChild(card);
+                grid.appendChild(label);
+            });
+
+            container.appendChild(grid);
+            contentArea.appendChild(container);
+        }
+
+        function renderResults() {
+            // Aggregation logic
+            const sectionsToComplete = new Set();
+            const evidenceItems = [];
+            let hasParentWarning = false;
+
+            // Analyze Main Goals for base sections
+            if (state.main_goals.includes('add_parent')) hasParentWarning = true;
+            if (state.main_goals.includes('add_spouse')) sectionsToComplete.add("Section II: Information Needed to Add Spouse (Including prior marriages)");
+            if (state.main_goals.includes('add_child')) sectionsToComplete.add("Section III: Information Needed to Add Child(ren)");
+
+            // Analyze Details
+            const allDetailKeys = ['add_spouse_details', 'add_child_details', 'rem_spouse_details', 'rem_child_details'];
+            
+            allDetailKeys.forEach(key => {
+                if (!flowSequence.includes(key)) return; // Skip if this step wasn't in the flow
+                
+                const selections = Array.isArray(state[key]) ? state[key] : [state[key]];
+                
+                selections.forEach(selectedId => {
+                    if (!selectedId) return;
+                    const opt = config[key].options.find(o => o.id === selectedId);
+                    if (opt) {
+                        if (opt.section) sectionsToComplete.add(opt.section);
+                        if (opt.req) evidenceItems.push({ label: opt.label, req: opt.req });
+                    }
+                });
+            });
+
+            // Build Output HTML
+            let requirementsHTML = `
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">Your Comprehensive Checklist</h2>
+                    <p class="text-slate-600">Based on your selections, here is exactly what you need to provide on and with VA Form 21-686c.</p>
+                </div>
+            `;
+
+            if (hasParentWarning) {
+                requirementsHTML += `
+                    <div class="mb-6 bg-amber-50 border-l-4 border-amber-500 p-5 rounded-r-xl shadow-sm">
+                        <h3 class="font-bold text-amber-800 text-lg flex items-center">
+                            <svg class="w-6 h-6 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            Dependent Parent Notice
+                        </h3>
+                        <p class="text-amber-900 mt-2">You indicated you are adding a Dependent Parent. <strong>DO NOT</strong> put parent information on VA Form 21-686c. You must submit a separate <strong>VA Form 21P-509</strong> for them.</p>
+                    </div>
+                `;
+            }
+
+            // Mandatory Base
+            requirementsHTML += `
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold text-red-600 mb-3 flex items-center">
+                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Mandatory Sections for ALL Requests
+                    </h3>
+                    <ul class="space-y-3 bg-red-50 p-5 rounded-xl border border-red-100">
+                        <li class="flex items-start"><svg class="w-5 h-5 text-red-500 mt-0.5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span class="text-slate-800"><strong>Section I:</strong> Veteran/Claimant's Identification Information</span></li>
+                        <li class="flex items-start"><svg class="w-5 h-5 text-red-500 mt-0.5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span class="text-slate-800"><strong>Section X:</strong> Beneficiary/Claimant's Certification and Signature</span></li>
+                    </ul>
+                </div>
+            `;
+
+            // Dynamic Sections
+            if (sectionsToComplete.size > 0) {
+                let sectionListHTML = Array.from(sectionsToComplete).map(sec => 
+                    `<li class="flex items-start"><svg class="w-5 h-5 text-blue-500 mt-0.5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg><span class="text-slate-800"><strong>${sec.split(':')[0]}:</strong> ${sec.substring(sec.indexOf(':') + 1).trim()}</span></li>`
+                ).join('');
+
+                requirementsHTML += `
+                    <div class="mb-6">
+                        <h3 class="text-xl font-bold text-blue-600 mb-3 flex items-center">
+                            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Sections to Complete on VA Form 21-686c
+                        </h3>
+                        <ul class="space-y-3 bg-blue-50 p-5 rounded-xl border border-blue-100">
+                            ${sectionListHTML}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            // Evidence
+            if (evidenceItems.length > 0) {
+                let evidenceListHTML = evidenceItems.map(item => `
+                    <div class="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                        <p class="font-semibold text-amber-900 mb-1">${item.label}</p>
+                        <p class="text-amber-800 text-sm">${item.req}</p>
+                    </div>
+                `).join('');
+
+                requirementsHTML += `
+                    <div class="mb-6">
+                        <h3 class="text-xl font-bold text-amber-600 mb-3 flex items-center">
+                            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                            Additional Documents / Forms Required
+                        </h3>
+                        <div class="space-y-4">
+                            ${evidenceListHTML}
+                        </div>
+                    </div>
+                `;
+            } else if (!hasParentWarning) {
+                requirementsHTML += `
+                    <div class="mb-6 p-4 bg-green-50 rounded-lg border border-green-200 flex items-start">
+                        <svg class="w-6 h-6 text-green-600 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <p class="text-green-800">Based on your selections, you likely <strong>do not</strong> need to provide additional evidence (like certificates) alongside your form unless explicitly requested by the VA.</p>
+                    </div>
+                `;
+            }
+
+            requirementsHTML += `
+                <div class="mt-8 text-center pt-6 border-t border-slate-200">
+                    <button onclick="resetApp()" class="px-6 py-2 bg-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-300 transition-colors mr-3">Start Over</button>
+                    <a href="https://www.va.gov/vaforms/" target="_blank" class="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm">Find Forms on VA.gov &rarr;</a>
+                </div>
+            `;
+
+            contentArea.innerHTML = requirementsHTML;
+        }
+
+        function validateSelection(stateKey) {
+            let isValid = false;
+            if (Array.isArray(state[stateKey])) {
+                isValid = state[stateKey].length > 0;
+            } else {
+                isValid = state[stateKey] !== null && state[stateKey] !== '';
+            }
+
+            if (isValid) {
+                btnNext.disabled = false;
+                btnNext.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                btnNext.disabled = true;
+                btnNext.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        // --- Event Listeners ---
+        btnNext.addEventListener('click', () => {
+            if (flowSequence[currentStepIndex] === 'main_goals') {
+                updateFlowSequence();
+            }
+            if (currentStepIndex < flowSequence.length - 1) {
+                currentStepIndex++;
+                renderStep();
+            }
+        });
+
+        btnBack.addEventListener('click', () => {
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                // Re-calculate flow just in case, though back shouldn't change forward branches until Next is hit
+                if (currentStepIndex === 0) updateFlowSequence();
+                renderStep();
+            }
+        });
+
+        window.resetApp = function() {
+            state = { main_goals: [], add_spouse_details: [], add_child_details: [], rem_spouse_details: null, rem_child_details: [] };
+            flowSequence = ['main_goals'];
+            currentStepIndex = 0;
+            renderStep();
+        };
+
+        // Initialize
+        renderStep();
+
+    </script>
+</body>
+</html>
